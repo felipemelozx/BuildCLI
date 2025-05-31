@@ -1,18 +1,16 @@
 package dev.buildcli.core.utils.installers;
 
+import dev.buildcli.core.exceptions.DownloadFailedException;
 import dev.buildcli.core.log.SystemOutLogger;
 import dev.buildcli.core.utils.DirectoryCleanup;
+import dev.buildcli.core.utils.EnvUtils;
 import dev.buildcli.core.utils.OS;
 import dev.buildcli.core.utils.compress.FileExtractor;
+import dev.buildcli.core.utils.net.FileDownloader;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Paths;
 
 public abstract class MavenInstaller {
@@ -24,7 +22,7 @@ public abstract class MavenInstaller {
   private static final String MAVEN_DOWNLOAD_URL = "https://dlcdn.apache.org/maven/maven-3/%s/binaries/%s-bin.".formatted(MAVEN_VERSION, MAVEN_NAME);
 
 
-  public static void installMaven() {
+  public static void installMaven() throws DownloadFailedException {
     SystemOutLogger.log("Installing Maven operation started...");
     try {
       SystemOutLogger.log("Downloading Maven operation started...");
@@ -48,14 +46,15 @@ public abstract class MavenInstaller {
         DirectoryCleanup.cleanup(file.getAbsolutePath());
         SystemOutLogger.log("Cleaning up maven download path finished...");
       }
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      SystemOutLogger.log("Failed to install Maven: " + e.getMessage());
+      throw new DownloadFailedException("Failed to install Maven" + e.getMessage());
     }
   }
 
   public static File installProgramFilesDirectory() {
     if (OS.isWindows()) {
-      String programFiles = System.getenv("ProgramFiles");
+      String programFiles = EnvUtils.getEnv("ProgramFiles");
       if (programFiles == null) {
         programFiles = "C:\\Program Files";
       }
@@ -65,71 +64,22 @@ public abstract class MavenInstaller {
     }
   }
 
-  public static File downloadMaven() throws IOException, InterruptedException {
+  public static File downloadMaven() throws IOException {
     var isWindows = OS.isWindows();
     var url = MAVEN_DOWNLOAD_URL + (isWindows ? "zip" : "tar.gz");
-    var request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
 
     SystemOutLogger.log("Downloading Maven artifact from: " + url);
 
-    var client = HttpClient.newHttpClient();
-
     SystemOutLogger.log("Connecting to " + url);
-    var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+    File response = FileDownloader.download(url);
     SystemOutLogger.log("Connected to " + url);
-
-    if (response.statusCode() != 200) {
-      throw new IOException("Failed to download maven artifact: " + response.statusCode());
+    if (!response.exists()) {
+      throw new IOException("Failed to download Maven artifact from: " + url);
     }
-
-    long contentLength = response.headers().firstValue("Content-Length").map(MavenInstaller::parseContentLengthToLong).orElse(0L);
-
-    if (contentLength == 0L) {
-      throw new IOException("Failed to download maven artifact: " + response.statusCode());
-    }
-
-    var mavenInstallDir = new File(MAVEN_NAME + (isWindows ? ".zip" : ".tar.gz"));
-
-    if (mavenInstallDir.exists()) {
-      SystemOutLogger.log("Cleaning up maven install directory: " + mavenInstallDir);
-      DirectoryCleanup.cleanup(mavenInstallDir.getAbsolutePath());
-    }
-
-    try (var bodyStream = response.body()) {
-      try (var fos = new FileOutputStream(mavenInstallDir)) {
-        byte[] buffer = new byte[1024];
-        long totalRead = 0;
-        int read;
-
-        while ((read = bodyStream.read(buffer)) != -1) {
-          fos.write(buffer, 0, read);
-          totalRead += read;
-
-          int progress = (int) ((totalRead * 100) / contentLength);
-          int progressBarLength = 50;
-          int filledLength = (int) ((progress / 100.0) * progressBarLength);
-
-          String progressBar = "=".repeat(filledLength) + " ".repeat(progressBarLength - filledLength);
-
-          System.out.printf("\r[%s] %d%%", progressBar, progress);
-        }
-        System.out.println();
-      }
-    }
-
-
-    if (!mavenInstallDir.exists()) {
-      throw new IOException("Failed to create maven download directory: " + mavenInstallDir);
-    }
-
-    return mavenInstallDir;
+    return response;
   }
 
-  private static long parseContentLengthToLong(String s) {
-    return s.isEmpty() ? 0 : Long.parseLong(s);
-  }
-
-  public static void extractMaven(String filePath, String extractTo) throws IOException, InterruptedException {
+  public static void extractMaven(String filePath, String extractTo) throws IOException {
     FileExtractor.extractFile(filePath, extractTo);
   }
 

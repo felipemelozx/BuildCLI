@@ -42,7 +42,9 @@ public final class FileDownloader {
         throw new IOException("Failed to download file: " + response.statusCode());
       }
 
-      var filename = contentDisposition.map(s -> s.split("=")[1].replace("\"", "")).orElse("");
+      var filename = contentDisposition
+          .map(s -> s.split("=")[1].replace("\"", ""))
+          .orElseGet(() -> url.substring(url.lastIndexOf('/') + 1));
 
       if (filename.isEmpty()) {
         throw new IOException("Failed to download file: " + response.statusCode());
