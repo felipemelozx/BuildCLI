@@ -163,8 +163,8 @@ public class BuildCLIService {
   }
 
   private static String readManifest(InputStream inputStream) {
-    try {
-      Manifest manifest = new Manifest(inputStream);
+      ManifestReader manifestReader = new DefaultManifestReader();
+      Manifest manifest = manifestReader.readManifest(inputStream);
       Attributes attributes = manifest.getMainAttributes();
       String buildDirectory = attributes.getValue("Build-Directory");
 
@@ -173,9 +173,6 @@ public class BuildCLIService {
       }
 
       return buildDirectory;
-    } catch (IOException e) {
-      throw new RuntimeException("Error while trying to read the content of the MANIFEST.MF file", e);
-    }
   }
 
 }
