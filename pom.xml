@@ -63,15 +63,14 @@
     <modules>
         <module>cli</module>
         <module>core</module>
-        <module>hooks</module>
         <module>plugin</module>
+        <module>hooks</module>
     </modules>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
         <junit.jupiter.version>5.11.0</junit.jupiter.version> <!-- Update if necessary -->
         <junit.bom.version>5.11.0</junit.bom.version> <!-- Keep synchronized with jupiter -->
         <mockito.version>5.12.0</mockito.version> <!-- Check latest version -->
@@ -91,9 +90,14 @@
     <dependencies>
         <!-- JUnit 5 - Managed by BOM -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -114,8 +118,6 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -133,7 +135,6 @@
             <artifactId>logback-core</artifactId>
             <version>${logback.version}</version>
         </dependency>
-
     </dependencies>
 
     <dependencyManagement>
