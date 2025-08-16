@@ -82,7 +82,7 @@ public class InitCommand implements BuildCLICommand {
     }
   }
 
-  private void createPomFile(String projectName) throws IOException {
+  private void createPomFile(String projectName, String basePackage) throws IOException {
     File pomFile = new File("pom.xml");
     if (pomFile.createNewFile()) {
       try (FileWriter writer = new FileWriter(pomFile)) {
@@ -129,7 +129,7 @@ public class InitCommand implements BuildCLICommand {
                                 <configuration>
                                     <archive>
                                         <manifest>
-                                            <mainClass>org.%s.Main</mainClass>
+                                            <mainClass>%s.Main</mainClass>
                                         </manifest>
                                     </archive>
                                 </configuration>
@@ -137,7 +137,7 @@ public class InitCommand implements BuildCLICommand {
                         </plugins>
                     </build>
                 </project>
-            """.formatted(projectName.toLowerCase(), projectName, jdkVersion, projectName.toLowerCase()));
+            """.formatted(projectName.toLowerCase(), projectName, jdkVersion, basePackage));
       }
       SystemOutLogger.log("pom.xml file created with default configuration.");
     }
@@ -154,6 +154,9 @@ public class InitCommand implements BuildCLICommand {
       projectName = projectName == null || projectName.isEmpty() ? question("Enter project name") : projectName;
       jdkVersion = jdkVersion == null || jdkVersion.isEmpty() ? question("Enter jdk version") : jdkVersion;
       var basePackage = question("Enter base-package");
+      if (basePackage == null || basePackage.trim().isEmpty()) {
+        basePackage = "org." + projectName.toLowerCase();
+      }
 
       String[] dirs = {
           "src/main/java/" + basePackage.replace('.', '/'),
@@ -171,7 +174,7 @@ public class InitCommand implements BuildCLICommand {
       try {
         createReadme(projectName);
         createMainClass(basePackage);
-        createPomFile(projectName);
+        createPomFile(projectName, basePackage);
       } catch (IOException e) {
         throw new CommandExecutorRuntimeException(e);
       }
